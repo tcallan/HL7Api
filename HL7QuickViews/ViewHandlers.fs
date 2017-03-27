@@ -9,14 +9,19 @@ let createQuickView (event : AggregateEvent) (data : CreatedQuickViewData) : Qui
       AggregateId = event.AggregateId
       Version = 0
       UserId = event.UserId
+      UserName = event.UserName
+      IsDeleted = false
       Name = data.Name
       Selectors = data.Selectors }
 
 let getQuickView (event : AggregateEvent) (db : LiteDatabase) =
     db |> getQuickView event.AggregateId
 
+let getQuickViewsForUser (event : AggregateEvent) (db : LiteDatabase) =
+    db |> getQuickViewsForUser event.UserId
+
 let addSelector (selector: string) (view: QuickView) =
-    { view with Selectors = selector::view.Selectors }
+    { view with Selectors = view.Selectors @ [selector] }
 
 let addQuickViewSelector (data : UpdatedQuickViewData) (view : QuickView option) =
     view |> Option.map (addSelector data.Selector)
@@ -30,9 +35,13 @@ let removeQuickViewSelector (data : UpdatedQuickViewData) (view : QuickView opti
 let renameQuickView (data : RenamedQuickViewData) (view : QuickView option) =
     view |> Option.map (fun v -> {v with Name = data.Name})
 
+let deleteQuickView (view: QuickView  option) =
+    view |> Option.map (fun v -> {v with IsDeleted = true})
+
 let private updateQuickView (db : LiteDatabase) (event : AggregateEvent) =
     match event.Data with
     | CreatedQuickView data -> createQuickView event data |> Some
+    | DeletedQuickView -> getQuickView event db |> deleteQuickView 
     | AddedQuickViewSelector data -> getQuickView event db |> addQuickViewSelector data
     | RemovedQuickViewSelector data -> getQuickView event db |> removeQuickViewSelector data
     | RenamedQuickView data -> getQuickView event db |> renameQuickView data

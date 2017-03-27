@@ -40,14 +40,16 @@ type HomeController (jwtOptions : IOptions<JwtOptions>) =
         sprintf "<div>%s</div><div>%s</div><div>%s</div><div>%s</div>" userInfo logInOut jwt config
 
 [<Route("auth")>]
-type AuthController () =
+type AuthController (jwtOptions : IOptions<JwtOptions>) =
     inherit Controller ()
 
     [<HttpGet("login")>]
     member this.Login () =
         if isNull this.HttpContext.User || not this.HttpContext.User.Identity.IsAuthenticated
-        then this.HttpContext.Authentication.ChallengeAsync (OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties (RedirectUri = "/" ))
-        else Task.CompletedTask
+        then this.HttpContext.Authentication.ChallengeAsync (OpenIdConnectDefaults.AuthenticationScheme, new AuthenticationProperties (RedirectUri = "/auth/login" ))
+        else 
+             this.HttpContext.Response.Redirect(sprintf "http://localhost:4200/workspace/0/quick?query=%A" (HL7Identity.JwtGenerator.generateJwt (jwtOptions.Value) this.HttpContext.User))
+             Task.CompletedTask
 
     [<HttpGet("logout")>]
     member this.Logout () =
@@ -56,5 +58,5 @@ type AuthController () =
             then
                 do! this.HttpContext.Authentication.SignOutAsync OpenIdConnectDefaults.AuthenticationScheme |> Async.AwaitTask
                 do! this.HttpContext.Authentication.SignOutAsync CookieAuthenticationDefaults.AuthenticationScheme |> Async.AwaitTask
-            return new RedirectResult("/", false)
+            return new RedirectResult("http://localhost:4200/workspace/0/quick", false)
         } |> Async.StartAsTask

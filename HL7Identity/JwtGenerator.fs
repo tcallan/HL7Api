@@ -23,6 +23,9 @@ module JwtGenerator =
     let private getUserId claims =
         getClaim "http://schemas.microsoft.com/identity/claims/objectidentifier" claims
 
+    let private getUserName claims = 
+        getClaim "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" claims
+
     let private signingCredentials (key: string) =
         let securityKey = new SymmetricSecurityKey (Encoding.ASCII.GetBytes key)
         new SigningCredentials (securityKey, SecurityAlgorithms.HmacSha256)
@@ -34,6 +37,7 @@ module JwtGenerator =
 
         let claims = [|
             new Claim (JwtRegisteredClaimNames.Sub, getUserId user.Claims)
+            new Claim (JwtRegisteredClaimNames.UniqueName , getUserName user.Claims)
             new Claim (JwtRegisteredClaimNames.Jti, Guid.NewGuid () |> sprintf "%A")
             new Claim (JwtRegisteredClaimNames.Iat, unixEpoc now, ClaimValueTypes.Integer64)
             new Claim ("tid", getTenantId user.Claims)

@@ -19,6 +19,7 @@ type RenameQuickViewData =
 
 type CommandData =
     | CreateQuickView of CreateQuickViewData
+    | DeleteQuickView
     | AddQuickViewSelector of UpdateQuickViewData
     | RemoveQuickViewSelector of UpdateQuickViewData
     | RenameQuickView of RenameQuickViewData
@@ -26,6 +27,7 @@ type CommandData =
 type Command =
     { AggregateId : Guid
       UserId : Guid
+      UserName: string
       Data : CommandData }
 
 type CommandResult = Result<AggregateEvent, string>
@@ -56,6 +58,7 @@ let makeEvent (data : EventData) (version: int32) : AggregateEvent =
       AggregateId = Guid.Empty
       Version = version 
       UserId = Guid.Empty
+      UserName = ""
       Data = data }
 
 (* 
@@ -68,6 +71,14 @@ let handleCreateQuickView (data : CreateQuickViewData) (events : AggregateEvent 
         let data = CreatedQuickView { Name = data.Name
                                       Selectors = data.Selectors }
         return makeEvent data 0
+    }
+
+let handleDeleteQuickView (events : AggregateEvent list) : CommandResult =
+    result {
+        let! events' = isExistingAggregate events
+        let version = events' |> nextVersion
+        let data = DeletedQuickView
+        return makeEvent data version
     }
 
 let handleAddQuickViewSelector (data : UpdateQuickViewData) (events : AggregateEvent list) : CommandResult =
@@ -102,13 +113,15 @@ type CommandHandler = AggregateEvent list -> CommandResult
 let getHandler (command : Command) : CommandHandler =
     match command.Data with
     | CreateQuickView data -> handleCreateQuickView data
+    | DeleteQuickView -> handleDeleteQuickView
     | AddQuickViewSelector data -> handleAddQuickViewSelector data
     | RemoveQuickViewSelector data -> handleRemoveQuickViewSelector data
     | RenameQuickView data -> handleRenameQuickView data
 
-let addIds (aggregateId : Guid) (userId : Guid) (event : AggregateEvent) =
+let addIds (aggregateId : Guid) (userId : Guid) (userName : string) (event : AggregateEvent) =
     { event with
         AggregateId = aggregateId
+        UserName = userName
         UserId = userId }
 
 let handle (command : Command) (db : LiteDatabase) : CommandResult =
@@ -120,7 +133,7 @@ let handle (command : Command) (db : LiteDatabase) : CommandResult =
             db
             |> readAggregateEvents command.AggregateId
             |> handler
-            |> Result.map (addIds command.AggregateId command.UserId)
+            |> Result.map (addIds command.AggregateId command.UserId command.UserName)
 
         let eventId = db |> persistEvent commandEvent
 

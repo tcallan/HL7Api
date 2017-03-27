@@ -9,6 +9,7 @@ open Microsoft.Extensions.Logging
 open Microsoft.Extensions.Configuration
 open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.IdentityModel.Tokens
+open Microsoft.AspNetCore.Cors
 open System.Text
 open LiteDB
 
@@ -39,10 +40,13 @@ type Startup (env : IHostingEnvironment) =
     /// For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
     member this.ConfigureServices (services : IServiceCollection) = 
         // Add framework services.
+        services.AddCors (fun options -> options.AddPolicy ("CorsPolicy",  
+                                                                fun builder -> builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader().AllowCredentials() |> ignore)) |> ignore
         services.AddMvc() |> ignore
 
         // Add database connection
         services.AddSingleton<LiteDatabase> (Data.getDbInstance configuration.["Data:ConnectionString"]) |> ignore
+                                                              
 
     /// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     member this.Configure (app : IApplicationBuilder, env : IHostingEnvironment, loggerFactory : ILoggerFactory ) =
@@ -60,4 +64,5 @@ type Startup (env : IHostingEnvironment) =
             )
         ) |> ignore
 
+        app.UseCors("CorsPolicy") |> ignore
         app.UseMvc() |> ignore    

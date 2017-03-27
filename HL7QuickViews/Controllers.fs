@@ -25,6 +25,10 @@ module Helpers =
         |> getClaim "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
         |> Guid.Parse
 
+    let getUserName claims =
+        claims
+        |> getClaim "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+
 (*
 Note: the controller types themselves need to not be in a module in order to be properly detected
 *)
@@ -46,7 +50,19 @@ type QuickViewCommandContoller (db : LiteDatabase) =
         let command =
             { AggregateId = id
               UserId = Helpers.getUserId this.User.Claims
+              UserName = Helpers.getUserName this.User.Claims
               Data = CreateQuickView data }
+        
+        handle command db
+
+    [<Authorize>]
+    [<HttpPost("{id}/delete")>]
+    member this.Delete (id : Guid) =
+        let command =
+            { AggregateId = id
+              UserId = Helpers.getUserId this.User.Claims
+              UserName = Helpers.getUserName this.User.Claims
+              Data = DeleteQuickView }
         
         handle command db
 
@@ -56,6 +72,7 @@ type QuickViewCommandContoller (db : LiteDatabase) =
         let command =
             { AggregateId = id
               UserId = Helpers.getUserId this.User.Claims
+              UserName = Helpers.getUserName this.User.Claims
               Data = AddQuickViewSelector data }
 
         handle command db
@@ -66,6 +83,7 @@ type QuickViewCommandContoller (db : LiteDatabase) =
         let command =
             { AggregateId = id 
               UserId = Helpers.getUserId this.User.Claims
+              UserName = Helpers.getUserName this.User.Claims
               Data = RemoveQuickViewSelector data }
 
         handle command db
@@ -76,6 +94,7 @@ type QuickViewCommandContoller (db : LiteDatabase) =
         let command =
             { AggregateId = id 
               UserId = Helpers.getUserId this.User.Claims
+              UserName = Helpers.getUserName this.User.Claims
               Data = RenameQuickView data }
 
         handle command db
@@ -92,6 +111,11 @@ type QuickViewQueryController (db : LiteDatabase) =
         | None -> this.NotFound () :> IActionResult
 
     [<Authorize>]
+    [<HttpGet("byuser/{userid}")>]
+    member this.GetByUser (userid : Guid)  =
+        db |> getQuickViewsForUser userid |> Seq.toList
+
+    [<Authorize>]
     [<HttpGet("all")>]
     member this.GetAll () =
-        db |> quickView |> findAll |> Seq.toList
+        db |> quickView |> find (fun view -> not view.IsDeleted) |> Seq.toList

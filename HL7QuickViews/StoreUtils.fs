@@ -15,3 +15,4 @@ let update (value : 'a) (collection : LiteCollection<'a>) =
 
 let upsert (value : 'a) (collection : LiteCollection<'a>) =
     collection.Upsert(value)
+

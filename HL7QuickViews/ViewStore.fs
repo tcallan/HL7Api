@@ -12,7 +12,10 @@ let init (db : LiteDatabase) =
     (db |> quickView).EnsureIndex(fun e -> e.AggregateId) |> ignore
 
 let private findQuickView (id : Guid) (collection : LiteCollection<RawQuickView>) =
-    collection.Find(Query.EQ("AggregateId", new BsonValue(id)))
+    collection.Find(Query.EQ("AggregateId", BsonValue(id)))
+
+let private findQuickViewForUser (id : Guid) (collection : LiteCollection<RawQuickView>) =
+    collection.Find(Query.And(Query.EQ("UserId", BsonValue(id)), Query.EQ("IsDeleted", BsonValue(false))))
 
 let getQuickView (id : Guid) (db : LiteDatabase) =
     db
@@ -27,11 +30,18 @@ let getAllQuickViews (db : LiteDatabase) =
     |> findAll
     |> Seq.toList
 
+let getQuickViewsForUser (userId : Guid) (db : LiteDatabase) =
+    db
+    |> quickView
+    |> findQuickViewForUser userId
+    |> Seq.toList
+
 let private insertQuickView (view : QuickView) (db : LiteDatabase) =
     db
     |> quickView
     |> insert (toRawQuickView view)
     |> ignore
+
 
 let private updateQuickView (view : QuickView) (db : LiteDatabase) =
     db

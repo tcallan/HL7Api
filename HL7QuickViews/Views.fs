@@ -7,6 +7,8 @@ type QuickView =
       AggregateId : Guid
       Version : int32
       UserId : Guid
+      UserName : string
+      IsDeleted: bool
       Name : string
       Selectors: string list }
 
@@ -17,6 +19,8 @@ type RawQuickView =
       AggregateId : Guid
       Version : int32
       UserId : Guid
+      UserName : string
+      IsDeleted: bool
       Name : string
       Selectors: string array }
 
@@ -25,6 +29,8 @@ let toRawQuickView (view : QuickView) : RawQuickView =
       AggregateId = view.AggregateId
       Version = view.Version 
       UserId = view.UserId
+      UserName = view.UserName
+      IsDeleted = view.IsDeleted
       Name = view.Name
       Selectors = view.Selectors |> List.toArray }
 
@@ -33,5 +39,7 @@ let fromRawQuickView (view : RawQuickView) : QuickView =
       AggregateId = view.AggregateId
       Version = view.Version 
       UserId = view.UserId
+      UserName = view.UserName
+      IsDeleted = view.IsDeleted
       Name = view.Name
       Selectors = view.Selectors |> Array.toList }
